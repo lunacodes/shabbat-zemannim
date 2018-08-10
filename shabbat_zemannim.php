@@ -42,6 +42,9 @@
  * Replace unxiTimestampToDate w/ PHP
  * Change fridayDateInfo to key => value array?
  * Refactor all js time functions, since Date/Time info can be generated faster w/ php 
+ * Is it possible to replace Hebcal Shabbat API with local code?
+   * What's the license on their code?
+ * Test
 */
 
 class Shabbat_Zemannim_Widget extends WP_Widget {
@@ -119,7 +122,7 @@ class Shabbat_Zemannim_Widget extends WP_Widget {
   }
 
   $ShabbatDateInfo = getShabbatDate();
-  echo("Shabbat Date Info: $ShabbatDateInfo[0], $ShabbatDateInfo[1]");
+  // echo("Shabbat Date Info: $ShabbatDateInfo[0], $ShabbatDateInfo[1]");
 
   function outputShabbatZemannim($dateInfo) {
     // echo("Date Info: $dateInfo");
@@ -129,16 +132,17 @@ class Shabbat_Zemannim_Widget extends WP_Widget {
     // echo("Shabbat Date: $shabbatDateStr <br> Heb Date: $hebDateStr");
     ?>
 
-      <div id="zemanim_container">
-          <div id="zemanim_display">
-              <span id="zemanim_date">Shabbat Times for <?php echo($shabbatDateStr) ?><br></span>
-              <span id="zemanim_city"></span>
-              <span id="zemanim_hebrew"><?php echo($hebDateStr); ?><br>
+      <div id="shabbat_zemanim_container">
+          <div id="shabbat_zemanim_display">
+              <span id="shabbat_zemanim_date">Shabbat Times for <?php echo($shabbatDateStr) ?><br></span>
+              <span id="shabbat_zemanim_city"></span>
+              <span id="shabbat_zemanim_hebrew"><?php echo($hebDateStr); ?><br>
               </span>
-              <span id="zemanim_shema">Latest Shema: <br></span>
-              <span id="zemanim_minha">Earliest Minḥa:  <br></span>
-              <span id="zemanim_peleg">Peleḡ HaMinḥa:  <br></span>
-              <span id="zemanim_sunset">Sunset <br></span>
+              <span id="shabbat_zemanim_shema">Latest Shema: <br></span>
+              <span id="shabbat_zemanim_minha">Earliest Minḥa:  <br></span>
+              <span id="shabbat_zemanim_peleg">Peleḡ HaMinḥa:  <br></span>
+              <span id="shabbat_zemanim_sunset">Sunset: <br></span>
+              <span id="shabbat_zemanim_habdala">Haḇdala: <br></span>
           </div>
       </div>
 
@@ -148,13 +152,14 @@ outputShabbatZemannim($ShabbatDateInfo);
 ?>
 
 <script type="text/javascript" defer>
-  // var z_date = document.getElementById("zemanim_date");
-  var z_city = document.getElementById("zemanim_city");
-  var z_shema = document.getElementById("zemanim_shema");
-  var z_minha = document.getElementById("zemanim_minha");
-  var z_peleg = document.getElementById("zemanim_peleg");
-  var z_sunset = document.getElementById("zemanim_sunset");
-  var zemanim = document.getElementById("zemanim_container");
+  // var z_date = document.getElementById("shabbat_zemanim_date");
+  var zemanim = document.getElementById("shabbat_zemanim_container");
+  var shabbat_z_city = document.getElementById("shabbat_zemanim_city");
+  var shabbat_z_shema = document.getElementById("shabbat_zemanim_shema");
+  var shabbat_z_minha = document.getElementById("shabbat_zemanim_minha");
+  var shabbat_z_peleg = document.getElementById("shabbat_zemanim_peleg");
+  var shabbat_z_sunset = document.getElementById("shabbat_zemanim_sunset");
+  var shabbat_z_habdala = document.getElementById("shabbat_zemanim_habdala");
 
   /**
    * shabbatGetLocation - gets user's lat & long via HTML5 Geolocation API sends to shabbatGetGeoDetails
@@ -301,7 +306,7 @@ outputShabbatZemannim($ShabbatDateInfo);
     var sunriseStr = shabbatGenerateTimeStrings(sunriseObj);
     var sunsetObj = times.sunset;
     var sunsetStr = shabbatGenerateTimeStrings(sunsetObj);
-
+    var habdalaOffset = 1200;
     // console.log("Generated Times:");
     // console.log(cityStr);
     // console.log(times);
@@ -318,13 +323,15 @@ outputShabbatZemannim($ShabbatDateInfo);
     var SunsetDateTimeInt = parseFloat((new Date(sunsetStr).getTime() / 1000) - offSetSec);
     var sunriseSec = SunriseDateTimeInt - offSet;
     var sunsetSec = SunsetDateTimeInt - offSet;
+    var habdalaSec = SunsetDateTimeInt + habdalaOffset;
 
-    var latestShemaStr = '<span id="zmantitle">Latest Shema: </span>' + shabbatCalculateLatestShema(sunriseSec, sunsetSec, offSetSec);
-    var earliestMinhaStr = '<span id="zmantitle">Earliest Minḥa: </span>' + shabbatCalculateEarliestMinha(sunriseSec, sunsetSec, offSetSec);
-    var pelegHaMinhaStr = '<span id="zmantitle">Peleḡ HaMinḥa: </span>' + shabbatCalculatePelegHaMinha(sunriseSec, sunsetSec, offSetSec);
-    var displaySunsetStr = '<span id="zmantitle">Sunset: </span>' + shabbatUnixTimestampToDate(SunsetDateTimeInt+offSetSec);
+    var latestShemaStr = '<span id="shabbat_zemanim_shema">Latest Shema: </span>' + shabbatCalculateLatestShema(sunriseSec, sunsetSec, offSetSec);
+    var earliestMinhaStr = '<span id="shabbat_zemanim_minha">Earliest Minḥa: </span>' + shabbatCalculateEarliestMinha(sunriseSec, sunsetSec, offSetSec);
+    var pelegHaMinhaStr = '<span id="shabbat_zemanim_peleg">Peleḡ HaMinḥa: </span>' + shabbatCalculatePelegHaMinha(sunriseSec, sunsetSec, offSetSec);
+    var displaySunsetStr = '<span id="shabbat_zemanim_sunset">Sunset: </span>' + shabbatUnixTimestampToDate(SunsetDateTimeInt+offSetSec);
+    var habdalaStr = '<span id="shabbat_zemanim_habdala">Haḇdala (20 min): </span>' + shabbatUnixTimestampToDate(habdalaSec + offSetSec);
 
-    shabbatDisplayTimes(cityStr, latestShemaStr, earliestMinhaStr, pelegHaMinhaStr, displaySunsetStr);
+    shabbatDisplayTimes(cityStr, latestShemaStr, earliestMinhaStr, pelegHaMinhaStr, displaySunsetStr, habdalaStr);
   }
 
   function shabbatUnixTimestampToDate(timestamp) {
@@ -368,14 +375,18 @@ outputShabbatZemannim($ShabbatDateInfo);
     return pelegHaMinha;
   }
 
-  function shabbatDisplayTimes(city, shema, minha, peleg, sunset) {
+  function shabbatCalculateHabdala(sunset) {
+    // body...
+  }
+  function shabbatDisplayTimes(city, shema, minha, peleg, sunset, habdala) {
 
     // z_date.innerHTML = date + "<br>";
-    z_city.innerHTML = city + "<br>";
-    z_shema.innerHTML = shema + "<br>";
-    z_minha.innerHTML = minha + "<br>";
-    z_peleg.innerHTML = peleg + "<br>";
-    z_sunset.innerHTML = sunset + "<br>";
+    shabbat_z_city.innerHTML = city + "<br>";
+    shabbat_z_shema.innerHTML = shema + "<br>";
+    shabbat_z_minha.innerHTML = minha + "<br>";
+    shabbat_z_peleg.innerHTML = peleg + "<br>";
+    shabbat_z_sunset.innerHTML = sunset + "<br>";
+    shabbat_z_habdala.innerHTML = habdala + "<br>";
   }
 
   // Make sure we're ready to run our script!
