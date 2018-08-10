@@ -40,6 +40,8 @@
    * Is there a way to check if we already have some of the info from the other plugin???
  * shabbatCheckForDST() isn't being used - delete?
  * Replace unxiTimestampToDate w/ PHP
+ * Change fridayDateInfo to key => value array?
+ * Refactor all js time functions, since Date/Time info can be generated faster w/ php 
 */
 
 class Shabbat_Zemannim_Widget extends WP_Widget {
@@ -87,39 +89,37 @@ class Shabbat_Zemannim_Widget extends WP_Widget {
     }
 
     // Get separate m-d-y to feed into hebcal
-    $friday_m = date("m", $friday);
-    $friday_d = date("j", $friday);
-    $friday_y = date("Y", $friday);
+    // $friday_ms = $friday * 1000;
+    $friday_str = date(DATE_ISO8601, $friday);
+    // echo("Friday Str: $friday_str <br>");
+    // echo("Friday int: $friday_int <br>Friday ms: $friday_ms <br>");
+    $friday_m = idate("m", $friday);
+    $friday_d = idate("j", $friday);
+    $friday_y = idate("Y", $friday);
+    $jdate = gregoriantojd($friday_m, $friday_d, $friday_y);
+    $jd2 = jdtojewish($jdate, true, CAL_JEWISH_ADD_GERESHAYIM);
+    
+    $hebDateStr = mb_convert_encoding("$jd2", "utf-8", "ISO-8859-8");
 
-    // Get Friday's Hebrew Date via hebcal
-    $hebDateUrl = "https://www.hebcal.com/converter/?cfg=json&gy=$friday_y&gm=$friday_m&gd=$friday_d&g2h=1";
-
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $hebDateUrl);
-    curl_setopt($ch, CURLOPT_HEADER, false);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    $results = curl_exec($ch);
-    curl_close($ch);
-    $data = json_decode($results, true);
-    $hebDateStr = $data['hebrew'];
+    // Debugging Friday Details
+    // echo("$friday_int <br>$friday_m <br>$friday_d <br>$friday_y <br>$jdate <br>$jd2 <br>$hebDateStr");
 
     // Get the name of the month
     $dateObj   = DateTime::createFromFormat('!m', $friday_m);
     $monthName = $dateObj->format('F'); // March
     $fridayDateStr = "$monthName $friday_d, $friday_y";
 
-    $fridayDateInfo = [$fridayDateStr, $hebDateStr];
+    $fridayDateInfo = [$fridayDateStr, $hebDateStr, $friday_str];
     // Debugging
     // echo("Date Info: ");
     // var_dump($fridayDateInfo);
-
     // echo("$yesterday <br> $date <br> $friday <br> $friday_mdy <br> $friday_d <br> $friday_m <br> $friday_y <br> $hebDateUrl <br> $fridayDateStr");
 
     return $fridayDateInfo;
   }
 
   $ShabbatDateInfo = getShabbatDate();
-  // echo($ShabbatDateInfo);
+  echo("Shabbat Date Info: $ShabbatDateInfo[0], $ShabbatDateInfo[1]");
 
   function outputShabbatZemannim($dateInfo) {
     // echo("Date Info: $dateInfo");
@@ -286,28 +286,33 @@ outputShabbatZemannim($ShabbatDateInfo);
   // }
 
   function shabbatGenerateTimes(lat, long, city) {
+    var dateInfo = <?php echo("'$ShabbatDateInfo[2]'"); ?>;
+    // console.log("Date Info: " + dateInfo); 
+    // console.log("Lat: " + lat);
+    // console.log("Long: " + long);
+
     var cityStr = city;
-    var times = SunCalc.getTimes(new Date(<?php echo("'$ShabbatDateInfo[0]'"); ?>), lat, long);
+    var times = SunCalc.getTimes(new Date(dateInfo), lat, long);
     var sunriseObj = times.sunrise;
     var offSet = sunriseObj.getTimezoneOffset() / 60;
     var offSetSec = offSet * 3600;
-    var dateObj = new Date();
+    // var dateObj = new Date();
     // var dateStr = generateDateString(dateObj);
     var sunriseStr = shabbatGenerateTimeStrings(sunriseObj);
     var sunsetObj = times.sunset;
     var sunsetStr = shabbatGenerateTimeStrings(sunsetObj);
 
-    console.log("Generated Times");
-    console.log(cityStr);
-    console.log(times);
-    console.log(sunriseObj);
-    console.log(offSet);
-    console.log(offSetSec);
-    console.log(dateObj);
+    // console.log("Generated Times:");
+    // console.log(cityStr);
+    // console.log(times);
+    // console.log(sunriseObj);
+    // console.log(offSet);
+    // console.log(offSetSec);
+    // console.log(dateObj);
     // console.log(dateStr);
-    console.log(sunriseStr);
-    console.log(sunsetObj);
-    console.log(sunsetStr);
+    // console.log(sunriseStr);
+    // console.log(sunsetObj);
+    // console.log(sunsetStr);
 
     var SunriseDateTimeInt = parseFloat((new Date(sunriseStr).getTime() / 1000) - offSetSec);
     var SunsetDateTimeInt = parseFloat((new Date(sunsetStr).getTime() / 1000) - offSetSec);
